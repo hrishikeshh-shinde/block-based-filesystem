@@ -1,6 +1,5 @@
 #include <time.h>
 #include <sys/stat.h>
-#include <i386-linux-gnu/sys/types.h>
 
 #define BLOCK_SIZE (512)
 #define MAX_NAME   (28)
@@ -11,10 +10,8 @@
 #define IND_BLOCK  (D_BLOCK+1)
 #define N_BLOCKS   (IND_BLOCK+1)
 
-#define SUCCESS    (0)
-#define USAGE_ERROR (1)
-#define RUNTIME_ERROR (-1)
 #define ROUND32(x) (((x) + 31) / 32 * 32)
+#define ROUNDBLOCK(x) (((x) + BLOCK_SIZE-1) / BLOCK_SIZE * BLOCK_SIZE)
 
 /*
   The fields in the superblock should reflect the structure of the filesystem.
@@ -40,14 +37,17 @@ struct wfs_sb {
     off_t i_blocks_ptr;
     off_t d_blocks_ptr;
     // Extend after this line
+    int raid_mode;
+    int num_disks;
+    int disks_order[MAX_DISKS];
 };
 
 // Inode
 struct wfs_inode {
     int     num;      /* Inode number */
     mode_t  mode;     /* File type and mode */
-    uid_t   uid;      /* User ID of owner */
-    gid_t   gid;      /* Group ID of owner */
+    __uid_t   uid;      /* User ID of owner */
+    __gid_t   gid;      /* Group ID of owner */
     off_t   size;     /* Total size, in bytes */
     int     nlinks;   /* Number of links */
 
