@@ -1,7 +1,5 @@
 # CS537 Fall 2024, Project 6
 
-## Updates
-
 ## Administrivia 
 
 - **Due Dates:**

@@ -1,0 +1,1 @@
+mkdir -p mnt && truncate -s 1M test-disk1; truncate -s 1M test-disk2; truncate -s 1M test-disk3 && ../solution/mkfs -r 1v -d test-disk1 -d test-disk2 -d test-disk3 -i 32 -b 200 && ../solution/wfs test-disk1 test-disk2 test-disk3 -s mnt

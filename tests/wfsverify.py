@@ -66,6 +66,12 @@ class WfsState:
             diskf.seek(self.get_dblock_region())
             return diskf.read(self.get_sb_datablocks() * self.blksize)
 
+    def clear_datablock_region(self):
+        """Overwrite the entire data region of the disk with zeros."""
+        with open(self.disk, "r+b") as diskf:
+            diskf.seek(self.get_dblock_region() + self.blksize)
+            diskf.write(b'\x00' * ((self.get_sb_datablocks() - 1) * self.blksize))
+
     def get_sb_inodes(self):
         """Return the total number of inodes in the filesystem."""
         return self.sb['inodes']

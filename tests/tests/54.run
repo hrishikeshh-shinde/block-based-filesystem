@@ -1,0 +1,11 @@
+python3 -c 'import os
+from stat import *
+
+try:
+    os.chdir("mnt")
+except Exception as e:
+    print(e)
+    exit(1)
+
+print("Correct")' \
+ && fusermount -u mnt; ../solution/wfs test-disk4 test-disk3 test-disk2 test-disk1 -s mnt && ./wfs-check-metadata.py --mode raid1 --blocks 0 --altblocks 0 --dirs 1 --files 0 --disks test-disk1 test-disk2 test-disk3 test-disk4
