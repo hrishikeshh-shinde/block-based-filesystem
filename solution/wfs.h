@@ -39,7 +39,8 @@ struct wfs_sb {
     // Extend after this line
     int raid_mode;
     int num_disks;
-    int disks_order[MAX_DISKS];
+    int disk_index;
+    uint64_t disk_id;
 };
 
 // Inode

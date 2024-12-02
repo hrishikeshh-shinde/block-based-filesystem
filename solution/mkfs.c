@@ -30,10 +30,11 @@ size_t calc_size(size_t num_inodes, size_t num_data_blocks){
     return size;
 }
 
-struct wfs_sb write_superblock(int fd, size_t num_inodes, size_t num_data_blocks) {
+struct wfs_sb write_superblock(int fd, size_t num_inodes, size_t num_data_blocks, int raid_mode, int disk_index, int num_disks) {
     size_t i_bitmap_size = (num_inodes + 7) / 8;
     size_t d_bitmap_size = (num_data_blocks + 7) / 8;
     size_t inodes_size = num_inodes * BLOCK_SIZE;
+    __uint64_t disk_id = (__uint64_t)time(NULL) ^ (disk_index + 1) ^ rand();
 
     struct wfs_sb sb = {
         .num_inodes = num_inodes,
@@ -41,13 +42,18 @@ struct wfs_sb write_superblock(int fd, size_t num_inodes, size_t num_data_blocks
         .i_bitmap_ptr = sizeof(struct wfs_sb),
         .d_bitmap_ptr = (sizeof(struct wfs_sb) + i_bitmap_size),
         .i_blocks_ptr = ROUNDBLOCK(sizeof(struct wfs_sb) + i_bitmap_size + d_bitmap_size),
-        .d_blocks_ptr = ROUNDBLOCK(sizeof(struct wfs_sb) + i_bitmap_size + d_bitmap_size + inodes_size)
+        .d_blocks_ptr = ROUNDBLOCK(sizeof(struct wfs_sb) + i_bitmap_size + d_bitmap_size + inodes_size),
+        .raid_mode = raid_mode,
+        .num_disks = num_disks,
+        .disk_index = disk_index,
+        .disk_id = disk_id
     };
     // Write the superblock
     lseek(fd, 0 , SEEK_SET);
     ssize_t bytes_written = write(fd, &sb, sizeof(struct wfs_sb));
 
     if(bytes_written != sizeof(struct wfs_sb)){
+        perror("Failed to write superblock");
         exit(EXIT_FAILURE);
     }
     return sb;
@@ -63,6 +69,7 @@ void write_bitmap(int fd, size_t num_inodes, size_t num_data_blocks, struct wfs_
     lseek(fd, sb->i_bitmap_ptr, SEEK_SET);
     ssize_t bytes = write(fd, bitmap, i_bitmap_size);
     if(bytes != (ssize_t)i_bitmap_size){
+        perror("Failed to write inode bitmap");
         free(bitmap);
         exit(EXIT_FAILURE);
     }
@@ -72,6 +79,7 @@ void write_bitmap(int fd, size_t num_inodes, size_t num_data_blocks, struct wfs_
     lseek(fd, sb->d_bitmap_ptr, SEEK_SET);
     bytes = write(fd, bitmap, d_bitmap_size);
     if(bytes != (ssize_t)d_bitmap_size){
+        perror("Failed to write data block bitmap");
         free(bitmap);
         exit(EXIT_FAILURE);
     }
@@ -148,6 +156,7 @@ int main(int argc, char* argv[]){
     for(int i=0; i<num_disks; i++){
         int fd = open(disks[i], O_RDWR, 0644);
         if(fd<0){
+            perror("Error opening disk file");
             return -1;
         }
 
@@ -160,7 +169,7 @@ int main(int argc, char* argv[]){
         }
 
         lseek(fd, 0, SEEK_SET);
-        struct wfs_sb sb = write_superblock(fd, num_inodes, num_data_blocks);
+        struct wfs_sb sb = write_superblock(fd, num_inodes, num_data_blocks, raid_mode, i, num_disks);
         write_bitmap(fd, num_inodes, num_data_blocks, &sb);
         write_rootinode(fd, &sb);
         
