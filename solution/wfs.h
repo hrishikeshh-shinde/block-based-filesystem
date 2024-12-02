@@ -1,3 +1,6 @@
+#ifndef WFS_H
+#define WFS_H
+
 #include <time.h>
 #include <sys/stat.h>
 
@@ -40,7 +43,7 @@ struct wfs_sb {
     int raid_mode;
     int num_disks;
     int disk_index;
-    uint64_t disk_id;
+    __uint64_t disk_id;
 };
 
 // Inode
@@ -64,3 +67,5 @@ struct wfs_dentry {
     char name[MAX_NAME];
     int num;
 };
+
+#endif
