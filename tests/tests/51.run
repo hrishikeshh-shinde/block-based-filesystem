@@ -8,4 +8,4 @@ except Exception as e:
     exit(1)
 
 print("Correct")' \
- && ./read-write.py 1 10 && ./wfs-check-metadata.py --mode raid0 --blocks 3 --altblocks 3 --dirs 1 --files 1 --disks test-disk1 test-disk2 test-disk3
+ && ./read-write.py 1 10 && fusermount -u mnt && ./wfs-check-metadata.py --mode raid0 --blocks 3 --altblocks 3 --dirs 1 --files 1 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2 /tmp/$(whoami)/test-disk3

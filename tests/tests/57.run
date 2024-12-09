@@ -8,4 +8,4 @@ except Exception as e:
     exit(1)
 
 print("Correct")' \
- && ./read-write.py 1 10; cat mnt/file1 > file1.test; fusermount -u mnt; ./corrupt-disk.py --disks test-disk1; ../solution/wfs test-disk1 test-disk2 test-disk3 -s mnt; diff mnt/file1 file1.test && ./wfs-check-metadata.py --mode raid1v --blocks 3 --altblocks 3 --dirs 1 --files 1 --disks test-disk1 test-disk2 test-disk3
+ && ./read-write.py 1 10; cat mnt/file1 > file1.test; fusermount -u mnt; ./corrupt-disk.py --disks /tmp/$(whoami)/test-disk1; ../solution/wfs /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2 /tmp/$(whoami)/test-disk3 -s mnt; diff mnt/file1 file1.test && fusermount -u mnt && ./wfs-check-metadata.py --mode raid1v --blocks 3 --altblocks 3 --dirs 1 --files 1 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2 /tmp/$(whoami)/test-disk3

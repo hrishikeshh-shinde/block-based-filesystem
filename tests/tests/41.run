@@ -344,4 +344,4 @@ except Exception as e:
     exit(1)
 
 print("Correct")' \
- && ./readdir-check.py 28 && ./wfs-check-metadata.py --mode raid1 --blocks 2 --altblocks 2 --dirs 1 --files 28 --disks test-disk1 test-disk2
+ && ./readdir-check.py 28 && fusermount -u mnt && ./wfs-check-metadata.py --mode raid1 --blocks 2 --altblocks 2 --dirs 1 --files 28 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2

@@ -56,4 +56,4 @@ except Exception as e:
     exit(1)
 
 print("Correct")' \
- && ./readdir-check.py 4 && ./wfs-check-metadata.py --mode raid0 --blocks 1 --altblocks 1 --dirs 1 --files 4 --disks test-disk1 test-disk2 test-disk3
+ && ./readdir-check.py 4 && fusermount -u mnt && ./wfs-check-metadata.py --mode raid0 --blocks 1 --altblocks 1 --dirs 1 --files 4 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2 /tmp/$(whoami)/test-disk3

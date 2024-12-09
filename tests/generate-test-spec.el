@@ -16,9 +16,14 @@
 	  (write-test-files (apply testgen config) counter)
 	  (setq counter (1+ counter)))))))
 
+(defun disk-path (img)
+  "Generate path for disk image."
+  (format "/tmp/$(whoami)/%s" img))
+
 (defun gen-disks (numdisks)
   "Generate string with list of disks for testing."
-  (mapcar (lambda (n) (format "test-disk%d" n))
+  (mapcar (lambda (n)
+	    (disk-path (format "test-disk%d" n)))
 	  (number-sequence 1 numdisks)))
 
 (defun create-disk-cmd (numdisks size)
@@ -212,7 +217,7 @@ FS-STATE the state of the filesystem."
 It creates disks, runs mkfs on them, and mounts with FUSE."
   (string-join
    (list
-    "mkdir -p mnt"
+    "mkdir -p mnt; mkdir -p /tmp/$(whoami)"
     (create-disk-cmd numdisks "1M")
     (concat "../solution/mkfs " (default-fs-mkfs-args raid numdisks))
     (mount-cmd numdisks "mnt"))
@@ -221,10 +226,9 @@ It creates disks, runs mkfs on them, and mounts with FUSE."
 (defun teardown-cmd ()
   "This is always the post command for filesystem tests.
 
-It un-mounts the mnt directory and removes the test disks."
-  (format
-   "%s; rm -f test-disk*"
-   (umount-cmd "mnt")))
+It removes the test disks."
+  (format "fusermount -uq mnt; rm -f %s"
+	  (disk-path "test-disk*")))
 
 (defun mount-cmd (numdisks dir)
   "Mount wfs using NUMDISKS disks in single-threaded mode on DIR.
@@ -257,10 +261,12 @@ RUN-RC return code of run command (metadata verifier)"
   (define-test
    (concat "mkfs: " desc)
    (string-join
-    (list (create-disk-cmd numdisks "1M")
-	  (concat "../solution/mkfs " (make-mkfs-args raid numdisks inodes blocks)))
+    (list
+     "mkdir -p /tmp/$(whoami)"
+     (create-disk-cmd numdisks "1M")
+     (concat "../solution/mkfs " (make-mkfs-args raid numdisks inodes blocks)))
     "; ")
-   (format "%s" "rm -f test-disk*")
+   (format "rm -f %s" (disk-path "test-disk*"))
    (format "./wfs-check-metadata.py --mode mkfs --inodes %d --blocks %d --disks %s"
 	   (roundup inodes 32)
 	   (roundup blocks 32)
@@ -299,6 +305,8 @@ OUTPUT the expected output. Generally \"Correct\" or an error."
    (concat
     (fs-state-cmds fs-state "d")
     " && "
+    (umount-cmd "mnt")
+    " && "
     (verify-metadata-cmd fs-state 0 numdisks))
    output
    "0" rc "")) ; pre-rc should always be 0
@@ -329,6 +337,7 @@ OUTPUT the expected output. Generally \"Correct\" or an error."
     (list
      (fs-state-cmds fs-state "d")
      op
+     (umount-cmd "mnt")
      (verify-metadata-cmd post-state post-extra-blocks numdisks))
     " && ")
    output
@@ -466,17 +475,21 @@ POST-BLOCKS additional blocks we should expect (e.g. no cleaning dir blocks)"
    ((testcase . ,#'filesystem-init-and-workload)
 ;;    (desc fs-state op post-state post-extra-blocks raid numdisks output rc)
     (configs . (("raid1 -- mount disks in other order" ,'()
-		  "fusermount -u mnt; ../solution/wfs test-disk4 test-disk3 test-disk2 test-disk1 -s mnt"
+		 ,(format "fusermount -u mnt; ../solution/wfs %s %s %s %s -s mnt"
+			 (disk-path "test-disk4") (disk-path "test-disk3")
+			 (disk-path "test-disk2") (disk-path "test-disk1"))
 		  ,'() 0 "1" 4 "Correct\nCorrect" 0)
 		 ("raid0 -- mount disks in other order" ,'()
-		  "fusermount -u mnt; ../solution/wfs test-disk3 test-disk2 test-disk1 -s mnt"
+		  ,(format "fusermount -u mnt; ../solution/wfs %s %s %s -s mnt"
+			  (disk-path "test-disk3") (disk-path "test-disk2") (disk-path "test-disk1"))
 		  ,'() 0 "0" 3 "Correct\nCorrect" 0)
 		 ("raid0 -- mount in other order with readback" ,'()
 		  ,(string-join
 		    (list "./read-write.py 1 50" ; create a 5000-byte file
 			  "cat mnt/file1 > file1.test" ; save the file
 			  "fusermount -u mnt" ; unmount
-			  "../solution/wfs test-disk3 test-disk2 test-disk1 -s mnt" ; remount different order
+			  (format "../solution/wfs %s %s %s -s mnt"
+				  (disk-path "test-disk3") (disk-path "test-disk2") (disk-path "test-disk1"))
 			  "diff mnt/file1 file1.test") ; should be identical
 		    "; ")
 		  ,'(("file1" . 5000)) 0 "0" 3 "Correct\nCorrect\nCorrect" 0)
@@ -485,7 +498,8 @@ POST-BLOCKS additional blocks we should expect (e.g. no cleaning dir blocks)"
 		    (list "./read-write.py 1 10"
 			  "cat mnt/file1 > file1.test"
 			  "fusermount -u mnt"
-			  "./corrupt-disk.py --disks test-disk1"
+			  (format "./corrupt-disk.py --disks %s"
+				  (disk-path "test-disk1"))
 			  (mount-cmd 3 "mnt")
 			  "diff mnt/file1 file1.test")
 		    "; ")

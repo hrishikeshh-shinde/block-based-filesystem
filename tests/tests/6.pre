@@ -1,1 +1,1 @@
-truncate -s 1M test-disk1; truncate -s 1M test-disk2; ../solution/mkfs -r 0 -d test-disk1 -d test-disk2 -i 33 -b 225
+mkdir -p /tmp/$(whoami); truncate -s 1M /tmp/$(whoami)/test-disk1; truncate -s 1M /tmp/$(whoami)/test-disk2; ../solution/mkfs -r 0 -d /tmp/$(whoami)/test-disk1 -d /tmp/$(whoami)/test-disk2 -i 33 -b 225

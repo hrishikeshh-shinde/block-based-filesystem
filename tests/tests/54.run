@@ -8,4 +8,4 @@ except Exception as e:
     exit(1)
 
 print("Correct")' \
- && fusermount -u mnt; ../solution/wfs test-disk4 test-disk3 test-disk2 test-disk1 -s mnt && ./wfs-check-metadata.py --mode raid1 --blocks 0 --altblocks 0 --dirs 1 --files 0 --disks test-disk1 test-disk2 test-disk3 test-disk4
+ && fusermount -u mnt; ../solution/wfs /tmp/$(whoami)/test-disk4 /tmp/$(whoami)/test-disk3 /tmp/$(whoami)/test-disk2 /tmp/$(whoami)/test-disk1 -s mnt && fusermount -u mnt && ./wfs-check-metadata.py --mode raid1 --blocks 0 --altblocks 0 --dirs 1 --files 0 --disks /tmp/$(whoami)/test-disk1 /tmp/$(whoami)/test-disk2 /tmp/$(whoami)/test-disk3 /tmp/$(whoami)/test-disk4
