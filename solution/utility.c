@@ -1,4 +1,5 @@
 #include "wfs.h"
+
 #include <fcntl.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -7,6 +8,8 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+
+#define BLOCK_ALIGN(offset) (((offset) + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE)
 
 size_t calc_size(size_t num_inodes, size_t num_data_blocks){
     size_t sb_size = sizeof(struct wfs_sb);
@@ -41,14 +44,13 @@ struct wfs_sb write_superblock(int fd, size_t num_inodes, size_t num_data_blocks
         .num_data_blocks = num_data_blocks,
         .i_bitmap_ptr = sizeof(struct wfs_sb),
         .d_bitmap_ptr = (sizeof(struct wfs_sb) + i_bitmap_size),
-        .i_blocks_ptr = ROUNDBLOCK(sizeof(struct wfs_sb) + i_bitmap_size + d_bitmap_size),
-        .d_blocks_ptr = ROUNDBLOCK(sizeof(struct wfs_sb) + i_bitmap_size + d_bitmap_size + inodes_size),
+        .i_blocks_ptr = BLOCK_ALIGN(sizeof(struct wfs_sb) + i_bitmap_size + d_bitmap_size),
+        .d_blocks_ptr = BLOCK_ALIGN(sizeof(struct wfs_sb) + i_bitmap_size + d_bitmap_size + inodes_size),
         .raid_mode = raid_mode,
-        .num_disks = num_disks,
+        .total_disks = num_disks,
         .disk_index = disk_index,
         .disk_id = disk_id
     };
-    // Write the superblock
     lseek(fd, 0 , SEEK_SET);
     ssize_t bytes_written = write(fd, &sb, sizeof(struct wfs_sb));
 
@@ -87,7 +89,7 @@ void write_bitmap(int fd, size_t num_inodes, size_t num_data_blocks, struct wfs_
 
 }
 
-void write_inode(int fd, struct wfs_inode *inode, size_t inode_index, struct wfs_sb *sb) {
+void write_inode_to_disk(int fd, struct wfs_inode *inode, size_t inode_index, struct wfs_sb *sb) {
   off_t inode_offset = sb->i_blocks_ptr + inode_index * BLOCK_SIZE;
 
   lseek(fd, inode_offset, SEEK_SET);
@@ -107,10 +109,15 @@ void write_rootinode(int fd, struct wfs_sb *sb) {
       .ctim = time(NULL),
   };
 
-  write_inode(fd, &root, 0, sb);
+  //Initialise everything to -1 so that we know if this is used or not
+  for (int i = 0; i < N_BLOCKS; i++) {
+    root.blocks[i] = -1;
+  }
+
+  write_inode_to_disk(fd, &root, 0, sb);
 }
 
-int initialize_disk(const char* disk, size_t num_inodes, size_t num_data_blocks,
+int disk_initialize(const char* disk, size_t num_inodes, size_t num_data_blocks,
                     size_t required_size, int raid_mode, int disk_index, int num_disks) {
 
         int fd = open(disk, O_RDWR, 0644);
@@ -118,8 +125,6 @@ int initialize_disk(const char* disk, size_t num_inodes, size_t num_data_blocks,
             perror("Error opening disk file");
             return -1;
         }
-
-         // Validate disk size
         off_t disk_size = lseek(fd, 0, SEEK_END);
         if( disk_size < required_size ){
             close(fd);
@@ -134,5 +139,22 @@ int initialize_disk(const char* disk, size_t num_inodes, size_t num_data_blocks,
 
         close(fd);
         return 0;
+}
+
+int split_path(const char *path, char *parent_path, char *dir_name) {
+  //Split the path and store in array
+  const char *last_slash = strrchr(path, '/');
+  if (last_slash == NULL || last_slash == path) {
+    parent_path[0] = '/';
+    parent_path[1] = '\0';
+    strncpy(dir_name, last_slash + 1, MAX_NAME);
+    return 0;
+  }
+
+  size_t parent_len = last_slash - path;
+  strncpy(parent_path, path, parent_len);
+  parent_path[parent_len] = '\0';
+  strncpy(dir_name, last_slash + 1, MAX_NAME);
+  return 0;
 }
 

@@ -1,1 +1,6 @@
-fusermount: entry for /home/hshinde/projects/p6/tests/mnt not found in /etc/mtab
+Traceback (most recent call last):
+  File "/home/cs537-1/handin/hshinde/p6/tests/./read-write.py", line 32, in <module>
+    contents = file.read()
+FileNotFoundError: [Errno 2] No such file or directory
+cat: mnt/file1: No such file or directory
+diff: mnt/file1: No such file or directory

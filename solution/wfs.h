@@ -1,13 +1,14 @@
 #ifndef WFS_H
 #define WFS_H
 
-#include <time.h>
+#include <stdint.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #define BLOCK_SIZE (512)
 #define MAX_NAME   (28)
 
-#define MAX_DISKS  (16) //Not sure about this value
+#define MAX_DISKS  (8) //Not sure about this value
 
 #define D_BLOCK    (6)
 #define IND_BLOCK  (D_BLOCK+1)
@@ -15,6 +16,8 @@
 
 #define ROUND32(x) (((x) + 31) / 32 * 32)
 #define ROUNDBLOCK(x) (((x) + BLOCK_SIZE-1) / BLOCK_SIZE * BLOCK_SIZE)
+
+#define PATH_MAX 4096
 
 /*
   The fields in the superblock should reflect the structure of the filesystem.
@@ -41,9 +44,9 @@ struct wfs_sb {
     off_t d_blocks_ptr;
     // Extend after this line
     int raid_mode;
-    int num_disks;
     int disk_index;
-    __uint64_t disk_id;
+    int total_disks;
+    uint64_t disk_id;
 };
 
 // Inode
@@ -59,7 +62,7 @@ struct wfs_inode {
     time_t mtim;      /* Time of last modification */
     time_t ctim;      /* Time of last status change */
 
-    off_t blocks[N_BLOCKS];
+    off_t blocks[N_BLOCKS]; 
 };
 
 // Directory entry
